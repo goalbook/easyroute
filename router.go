@@ -24,16 +24,53 @@ type Router struct {
 	logger        Logger
 }
 
+// NewRouter creates a new easyroute Router object with the provided
+// before handler and logger struct
 func NewRouter(beforeFn beforeHandlerFunc, logger Logger) Router {
 	muxRouter := mux.NewRouter()
 
-	gbrouter := Router{
+	router := Router{
 		muxRouter,
 		beforeFn,
 		logger,
 	}
 
-	return gbrouter
+	return router
+}
+
+// SubRoute creates a new easyroute Router off the base router with provided
+// prefix. This preserves the same before handler.
+func (g *Router) SubRoute(prefix string) Router {
+	muxRouter := g.PathPrefix(prefix).Subrouter()
+
+	router := Router{
+		muxRouter,
+		g.beforeHandler,
+		g.logger,
+	}
+
+	return router
+}
+
+// SubRouteC creates a new easyroute Router off the base router with provided
+// prefix and an additional before handler.
+// The routes in this router will now run through first the parent(base) router's
+// before handler and then this router's before handler.
+func (g *Router) SubRouteC(prefix string, beforeFn beforeHandlerFunc) Router {
+	muxRouter := g.PathPrefix(prefix).Subrouter()
+
+	router := Router{
+		muxRouter,
+		func(r *Request) bool {
+			if g.beforeHandler(r) {
+				return beforeFn(r)
+			}
+			return false
+		},
+		g.logger,
+	}
+
+	return router
 }
 
 func (g *Router) requestHandler(fn handlerFunc) http.HandlerFunc {
@@ -55,9 +92,10 @@ func (g *Router) requestHandler(fn handlerFunc) http.HandlerFunc {
 			origin := r.RemoteAddr
 			method := r.Method
 			path := r.URL.Path
+			sessioninfo := request.SessionInfo
 			request.Body(body)
 			elapsed := time.Since(start)
-			g.logger.LogI("origin=%s method=%s path=%s body=%s elapsed=%s", origin, method, path, body, elapsed)
+			g.logger.LogI("origin=%s method=%s path=%s body=%s sessioninfo=%s elapsed=%s", origin, method, path, body, sessioninfo, elapsed)
 		}
 	}
 }

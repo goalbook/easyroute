@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -16,7 +15,7 @@ type Request struct {
 	writer      http.ResponseWriter
 	request     *http.Request
 	userUuid    string
-	SessionInfo map[string]interface{}
+	SessionInfo map[string]string
 }
 
 // Create a new router.Request based on an http Request and ResponseWriter
@@ -31,10 +30,15 @@ func NewRequest(w http.ResponseWriter, r *http.Request) Request {
 	return request
 }
 
-// Writer returns an io.Writer for the request. Can be
+// Writer returns an http.ResponseWriter for the request. Can be
 // used to output templated html and the like.
-func (r *Request) Writer() io.Writer {
+func (r *Request) Writer() http.ResponseWriter {
 	return r.writer
+}
+
+// Request returns an http.Request object for the request.
+func (r *Request) Request() *http.Request {
+	return r.request
 }
 
 // Vars returns route variables for the request.
@@ -55,6 +59,23 @@ func (r *Request) ParamValue(key string) string {
 	return ""
 }
 
+// SetSessionValue allows us to set a value in the SessionInfo map.
+// Initializes map if not already done.
+func (r *Request) SetSessionValue(key string, value string) {
+	if r.SessionInfo == nil {
+		r.SessionInfo = make(map[string]string)
+	}
+	r.SessionInfo[key] = value
+}
+
+// SessionValue gets a key from the SessionInfo map.
+func (r *Request) SessionValue(key string) string {
+	return r.SessionInfo[key]
+}
+
+// Gets request body for PUT/POST requests and reads into the provided pointer.
+// If the request header indicates a json body, decode the body as JSON into
+// provided pointer.
 func (r *Request) Body(v interface{}) error {
 	var err error
 	if r.request.Method == "POST" || r.request.Method == "PUT" {
