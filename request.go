@@ -14,8 +14,8 @@ type Request struct {
 	urlParams   map[string][]string
 	writer      http.ResponseWriter
 	request     *http.Request
-	userUuid    string
-	SessionInfo map[string]string
+	UserUuid    string
+	SessionInfo map[string]interface{}
 }
 
 // Create a new router.Request based on an http Request and ResponseWriter
@@ -61,15 +61,15 @@ func (r *Request) ParamValue(key string) string {
 
 // SetSessionValue allows us to set a value in the SessionInfo map.
 // Initializes map if not already done.
-func (r *Request) SetSessionValue(key string, value string) {
+func (r *Request) SetSessionValue(key string, value interface{}) {
 	if r.SessionInfo == nil {
-		r.SessionInfo = make(map[string]string)
+		r.SessionInfo = make(map[string]interface{})
 	}
 	r.SessionInfo[key] = value
 }
 
 // SessionValue gets a key from the SessionInfo map.
-func (r *Request) SessionValue(key string) string {
+func (r *Request) SessionValue(key string) interface{} {
 	return r.SessionInfo[key]
 }
 
