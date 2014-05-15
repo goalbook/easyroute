@@ -92,10 +92,10 @@ func (g *Router) requestHandler(fn handlerFunc) http.HandlerFunc {
 			origin := r.RemoteAddr
 			method := r.Method
 			path := r.URL.Path
-			sessioninfo := request.SessionInfo
+			userUuid := request.UserUuid
 			request.Body(body)
 			elapsed := time.Since(start)
-			g.logger.LogI("origin=%s method=%s path=%s body=%s sessioninfo=%s elapsed=%s", origin, method, path, body, sessioninfo, elapsed)
+			g.logger.LogI("origin=%s method=%s path=%s body=%s user_uuid=%s elapsed=%s", origin, method, path, body, userUuid, elapsed)
 		}
 	}
 }
