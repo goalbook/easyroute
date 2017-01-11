@@ -2,7 +2,7 @@ package easyroute
 
 import (
 	"encoding/json"
-	"fmt"
+	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 	"io/ioutil"
 	"net/http"
@@ -110,7 +110,7 @@ func (r *Request) Redirect(forwardTo string) {
 func (r *Request) Json(status int, v interface{}) {
 	b, err := json.Marshal(v)
 	if err != nil {
-		fmt.Println("error:", err)
+		log.Errorf("Error marshaling value to json: %s", err.Error())
 	} else {
 		r.sendJson(r.writer, status, b)
 	}
