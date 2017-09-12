@@ -4,7 +4,6 @@ import (
 	"github.com/gorilla/mux"
 	"net/http"
 	"time"
-	"strconv"
 	gobrake "gopkg.in/airbrake/gobrake.v2"
 )
 
@@ -32,28 +31,25 @@ type Router struct {
 
 // NewRouter creates a new easyroute Router object with the provided
 // before handler and logger struct
-func NewRouter(beforeFn beforeHandlerFunc, logger Logger, airbrakeInfo map[string]string) Router {
+func NewRouter(beforeFn beforeHandlerFunc, logger Logger) Router {
 	muxRouter := mux.NewRouter()
-	var enableAirbrake bool
-	if(airbrakeInfo["enable"] == "true"){
-		enableAirbrake = true
-	} else {
-		enableAirbrake = false
-	}
-	airbrakeId, err := strconv.Atoi(airbrakeInfo["projectId"])
-	if(err != nil){
-		enableAirbrake = false
-	}
+	
 	router := Router{
 		muxRouter,
 		beforeFn,
 		logger,
-		int64(airbrakeId),
-		airbrakeInfo["projectKey"],
-		enableAirbrake,
+		0,
+		"",
+		false,
 	}
 
 	return router
+}
+
+func (g *Router) EnableAirbrake (airbrakeId int64, airbrakeKey string){
+	g.airbrakeEnabled = true
+	g.airbrakeProjectId = airbrakeId
+	g.airbrakeProjectKey = airbrakeKey
 }
 
 // SubRoute creates a new easyroute Router off the base router with provided
@@ -99,7 +95,7 @@ func (g *Router) SubRouteC(prefix string, beforeFn beforeHandlerFunc) Router {
 
 func (g *Router) requestHandler(fn handlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if(g.airbrakeEnabled == true){
+		if g.airbrakeEnabled == true {
 			airbrake := gobrake.NewNotifier(g.airbrakeProjectId, g.airbrakeProjectKey)
 			defer airbrake.Close()
 			defer airbrake.NotifyOnPanic()
