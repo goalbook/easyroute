@@ -4,6 +4,8 @@ import (
 	"github.com/gorilla/mux"
 	"net/http"
 	"time"
+	"strconv"
+	gobrake "gopkg.in/airbrake/gobrake.v2"
 )
 
 type handlerFunc func(*Request)
@@ -22,17 +24,33 @@ type Router struct {
 
 	beforeHandler beforeHandlerFunc
 	logger        Logger
+
+	airbrakeProjectId int64
+	airbrakeProjectKey string
+	airbrakeEnabled bool
 }
 
 // NewRouter creates a new easyroute Router object with the provided
 // before handler and logger struct
-func NewRouter(beforeFn beforeHandlerFunc, logger Logger) Router {
+func NewRouter(beforeFn beforeHandlerFunc, logger Logger, airbrakeInfo map[string]string) Router {
 	muxRouter := mux.NewRouter()
-
+	var enableAirbrake bool
+	if(airbrakeInfo["enable"] == "true"){
+		enableAirbrake = true
+	} else {
+		enableAirbrake = false
+	}
+	airbrakeId, err := strconv.Atoi(airbrakeInfo["projectId"])
+	if(err != nil){
+		enableAirbrake = false
+	}
 	router := Router{
 		muxRouter,
 		beforeFn,
 		logger,
+		int64(airbrakeId),
+		airbrakeInfo["projectKey"],
+		enableAirbrake,
 	}
 
 	return router
@@ -47,6 +65,9 @@ func (g *Router) SubRoute(prefix string) Router {
 		muxRouter,
 		g.beforeHandler,
 		g.logger,
+		0,
+		"",
+		false,
 	}
 
 	return router
@@ -68,6 +89,9 @@ func (g *Router) SubRouteC(prefix string, beforeFn beforeHandlerFunc) Router {
 			return false
 		},
 		g.logger,
+		0,
+		"",
+		false,
 	}
 
 	return router
@@ -75,6 +99,11 @@ func (g *Router) SubRouteC(prefix string, beforeFn beforeHandlerFunc) Router {
 
 func (g *Router) requestHandler(fn handlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if(g.airbrakeEnabled == true){
+			airbrake := gobrake.NewNotifier(g.airbrakeProjectId, g.airbrakeProjectKey)
+			defer airbrake.Close()
+			defer airbrake.NotifyOnPanic()
+		}
 		var body interface{}
 		// Start timer
 		start := time.Now()
