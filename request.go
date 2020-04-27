@@ -2,11 +2,12 @@ package easyroute
 
 import (
 	"encoding/json"
-	log "github.com/Sirupsen/logrus"
-	"github.com/gorilla/mux"
 	"io/ioutil"
 	"net/http"
 	"strings"
+
+	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 )
 
 type Request struct {
