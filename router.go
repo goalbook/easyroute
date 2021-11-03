@@ -2,9 +2,10 @@ package easyroute
 
 import (
 	"github.com/gorilla/mux"
-	"net/http"
-	"time"
 	gobrake "gopkg.in/airbrake/gobrake.v2"
+	"net/http"
+	"net/http/pprof"
+	"time"
 )
 
 type handlerFunc func(*Request)
@@ -24,16 +25,16 @@ type Router struct {
 	beforeHandler beforeHandlerFunc
 	logger        Logger
 
-	airbrakeProjectId int64
+	airbrakeProjectId  int64
 	airbrakeProjectKey string
-	airbrakeEnabled bool
+	airbrakeEnabled    bool
 }
 
 // NewRouter creates a new easyroute Router object with the provided
 // before handler and logger struct
 func NewRouter(beforeFn beforeHandlerFunc, logger Logger) Router {
 	muxRouter := mux.NewRouter()
-	
+
 	router := Router{
 		muxRouter,
 		beforeFn,
@@ -46,7 +47,20 @@ func NewRouter(beforeFn beforeHandlerFunc, logger Logger) Router {
 	return router
 }
 
-func (g *Router) EnableAirbrake (airbrakeId int64, airbrakeKey string){
+func (g *Router) ActivateProfiling() {
+	g.Router.HandleFunc("/debug/pprof/", pprof.Index)
+	g.Router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	g.Router.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	g.Router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+
+	// Manually add support for paths linked to by index page at /debug/pprof/
+	g.Router.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
+	g.Router.Handle("/debug/pprof/heap", pprof.Handler("heap"))
+	g.Router.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
+	g.Router.Handle("/debug/pprof/block", pprof.Handler("block"))
+}
+
+func (g *Router) EnableAirbrake(airbrakeId int64, airbrakeKey string) {
 	g.airbrakeEnabled = true
 	g.airbrakeProjectId = airbrakeId
 	g.airbrakeProjectKey = airbrakeKey
