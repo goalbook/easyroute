@@ -33,8 +33,8 @@ type Router struct {
 
 // NewRouter creates a new easyroute Router object with the provided
 // before handler and logger struct
-func NewRouter(beforeFn beforeHandlerFunc, logger Logger) Router {
-	muxRouter := muxtrace.NewRouter()
+func NewRouter(beforeFn beforeHandlerFunc, logger Logger, ddServiceName string) Router {
+	muxRouter := muxtrace.NewRouter(muxtrace.WithServiceName(ddServiceName))
 
 	router := Router{
 		muxRouter,
@@ -46,10 +46,6 @@ func NewRouter(beforeFn beforeHandlerFunc, logger Logger) Router {
 	}
 
 	return router
-}
-
-func (g *Router) SetMuxTraceRouter(r *muxtrace.Router) {
-	g.Router = r
 }
 
 func (g *Router) ActivateProfiling() {
