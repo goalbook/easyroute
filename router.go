@@ -1,11 +1,12 @@
 package easyroute
 
 import (
-	"github.com/gorilla/mux"
-	gobrake "gopkg.in/airbrake/gobrake.v2"
 	"net/http"
 	"net/http/pprof"
 	"time"
+
+	muxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux"
+	gobrake "gopkg.in/airbrake/gobrake.v2"
 )
 
 type handlerFunc func(*Request)
@@ -20,7 +21,7 @@ type Logger struct {
 
 type Router struct {
 	// Inherit a mux router
-	*mux.Router
+	*muxtrace.Router
 
 	beforeHandler beforeHandlerFunc
 	logger        Logger
@@ -32,8 +33,8 @@ type Router struct {
 
 // NewRouter creates a new easyroute Router object with the provided
 // before handler and logger struct
-func NewRouter(beforeFn beforeHandlerFunc, logger Logger) Router {
-	muxRouter := mux.NewRouter()
+func NewRouter(beforeFn beforeHandlerFunc, logger Logger, ddServiceName string) Router {
+	muxRouter := muxtrace.NewRouter(muxtrace.WithServiceName(ddServiceName))
 
 	router := Router{
 		muxRouter,
@@ -69,7 +70,7 @@ func (g *Router) EnableAirbrake(airbrakeId int64, airbrakeKey string) {
 // SubRoute creates a new easyroute Router off the base router with provided
 // prefix. This preserves the same before handler.
 func (g *Router) SubRoute(prefix string) Router {
-	muxRouter := g.PathPrefix(prefix).Subrouter()
+	muxRouter := muxtrace.WrapRouter(g.PathPrefix(prefix).Subrouter())
 
 	router := Router{
 		muxRouter,
@@ -88,7 +89,7 @@ func (g *Router) SubRoute(prefix string) Router {
 // The routes in this router will now run through first the parent(base) router's
 // before handler and then this router's before handler.
 func (g *Router) SubRouteC(prefix string, beforeFn beforeHandlerFunc) Router {
-	muxRouter := g.PathPrefix(prefix).Subrouter()
+	muxRouter := muxtrace.WrapRouter(g.PathPrefix(prefix).Subrouter())
 
 	router := Router{
 		muxRouter,
