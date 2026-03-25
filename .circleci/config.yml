@@ -7,6 +7,9 @@ jobs:
       image: default
     steps:
       - run: docker pull golang:1.25
+      - run:
+          name: Configure git to use HTTPS
+          command: git config --global url."https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@github.com/".insteadOf "git@github.com:"
       - checkout
       - run: "docker run --privileged=true
             -v /home/circleci/project/:/go/src/github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME
